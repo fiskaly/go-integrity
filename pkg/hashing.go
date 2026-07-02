@@ -54,7 +54,8 @@ func Hashing(src []byte) ([]byte, string, error) {
 		}
 	}
 
-	// normalize import aliases within the implementation code.
+	// normalize import aliases within the implementation code: every reference
+	// to an imported package is rewritten to the fixed identifier "namespace".
 	ast.Inspect(f, func(n ast.Node) bool {
 		sel, ok := n.(*ast.SelectorExpr)
 		if !ok {
@@ -64,9 +65,8 @@ func Hashing(src []byte) ([]byte, string, error) {
 		if !ok {
 			return true
 		}
-		if pathVal, exists := localToPath[ident.Name]; exists {
-			h := sha256.Sum256([]byte(pathVal))
-			ident.Name = fmt.Sprintf("pkg_%x", h[:4])
+		if _, exists := localToPath[ident.Name]; exists {
+			ident.Name = "namespace"
 		}
 		return true
 	})

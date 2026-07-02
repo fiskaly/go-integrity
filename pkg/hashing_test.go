@@ -21,7 +21,7 @@ func greet(name string) {
 // goldenHash is the SHA256 of the normalized implementation of goldenSource.
 // It was produced by the current implementation and must only change on a
 // deliberate, reviewed change to the hashing algorithm.
-const goldenHash = "7a874d8e721e57e16306d48cbd1b509cff2a0b4b21361bea2580c4fe70b67ef9"
+const goldenHash = "61654b64210f5c7ace6437aeac02e44d0ad07a65af07e3569ca11498c5b771be"
 
 // mustHash is a helper that runs Hashing and fails the test on error.
 func mustHash(t *testing.T, src string) (string, string) {
@@ -156,7 +156,7 @@ func greet(name string) {
 }
 
 // TestHashingImportAliasNormalized verifies that references to imported
-// packages are rewritten to the deterministic "pkg_xxxxxxxx" form and that the
+// packages are rewritten to the fixed "namespace" identifier and that the
 // original alias no longer appears in the normalized output.
 func TestHashingImportAliasNormalized(t *testing.T) {
 	src := `package main
@@ -172,8 +172,8 @@ func greet(name string) {
 	if strings.Contains(content, "custom.") {
 		t.Errorf("original import alias %q was not normalized away:\n%s", "custom", content)
 	}
-	if !strings.Contains(content, "pkg_") {
-		t.Errorf("expected normalized alias prefix %q in output:\n%s", "pkg_", content)
+	if !strings.Contains(content, "namespace.") {
+		t.Errorf("expected normalized alias %q in output:\n%s", "namespace.", content)
 	}
 }
 
@@ -189,16 +189,16 @@ func use() {
 	bar.Do()
 }
 `
-	// The equivalent unversioned form resolves to the same local name "bar",
-	// but a different import path, so the hashes must differ from each other
-	// while both being stable and non-empty.
+	// The versioned import resolves to the local name "bar", which is then
+	// rewritten to the fixed "namespace" identifier. The resulting hash must
+	// be stable and non-empty.
 	contentV, hashV := mustHash(t, versioned)
 
 	if strings.Contains(contentV, "bar.") {
 		t.Errorf("versioned import alias was not normalized:\n%s", contentV)
 	}
-	if !strings.Contains(contentV, "pkg_") {
-		t.Errorf("expected normalized alias prefix in versioned output:\n%s", contentV)
+	if !strings.Contains(contentV, "namespace.") {
+		t.Errorf("expected normalized alias %q in versioned output:\n%s", "namespace.", contentV)
 	}
 	if hashV == "" {
 		t.Error("expected a non-empty hash for versioned import source")
@@ -256,7 +256,7 @@ func get(o outer) int {
 	if hash == "" {
 		t.Error("expected a non-empty hash for chained selector source")
 	}
-	if strings.Contains(content, "pkg_") {
+	if strings.Contains(content, "namespace.") {
 		t.Errorf("chained selector must not be rewritten as an import alias:\n%s", content)
 	}
 	if !strings.Contains(content, "o.inner.Field") {

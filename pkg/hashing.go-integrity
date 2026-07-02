@@ -1,67 +1,66 @@
-6464f315f52d2d683f295e64ec731c86966c9903200b8f8097e3581f69d1547e
+c722b447d0ef00a05508eb7216ced73ad9f32ff388b97ea954df200e540e0124
 ---
 func Hashing(src []byte) ([]byte, string, error) {
 	var undefined string
-	fset := pkg_55f7a5e7.NewFileSet()
-	f, err := pkg_e47cd6c4.ParseFile(fset, "", src, 0)
+	fset := namespace.NewFileSet()
+	f, err := namespace.ParseFile(fset, "", src, 0)
 	if err != nil {
-		return nil, undefined, pkg_c63e082d.Errorf("failed to parse Go code: %w", err)
+		return nil, undefined, namespace.Errorf("failed to parse Go code: %w", err)
 	}
 	localToPath := make(map[string]string)
-	versionRegex := pkg_0af6c667.MustCompile(`^v\d+$`)
+	versionRegex := namespace.MustCompile(`^v\d+$`)
 	for _, decl := range f.Decls {
-		genDecl, ok := decl.(*pkg_52ec7f3b.GenDecl)
-		if !ok || genDecl.Tok != pkg_55f7a5e7.IMPORT {
+		genDecl, ok := decl.(*namespace.GenDecl)
+		if !ok || genDecl.Tok != namespace.IMPORT {
 			continue
 		}
 		for _, spec := range genDecl.Specs {
-			importSpec := spec.(*pkg_52ec7f3b.ImportSpec)
-			pathVal := pkg_e967d16d.Trim(importSpec.Path.Value, `"`)
+			importSpec := spec.(*namespace.ImportSpec)
+			pathVal := namespace.Trim(importSpec.Path.Value, `"`)
 			var localName string
 			if importSpec.Name != nil {
 				localName = importSpec.Name.Name
 			} else {
-				base := pkg_a0af9f86.Base(pathVal)
+				base := namespace.Base(pathVal)
 				if versionRegex.MatchString(base) {
-					base = pkg_a0af9f86.Base(pkg_a0af9f86.Dir(pathVal))
+					base = namespace.Base(namespace.Dir(pathVal))
 				}
 				localName = base
 			}
 			localToPath[localName] = pathVal
 		}
 	}
-	pkg_52ec7f3b.Inspect(f, func(n pkg_52ec7f3b.Node) bool {
-		sel, ok := n.(*pkg_52ec7f3b.SelectorExpr)
+	namespace.Inspect(f, func(n namespace.Node) bool {
+		sel, ok := n.(*namespace.SelectorExpr)
 		if !ok {
 			return true
 		}
-		ident, ok := sel.X.(*pkg_52ec7f3b.Ident)
+		ident, ok := sel.X.(*namespace.Ident)
 		if !ok {
 			return true
 		}
-		if pathVal, exists := localToPath[ident.Name]; exists {
-			h := pkg_3b8f4be9.Sum256([]byte(pathVal))
-			ident.Name = pkg_c63e082d.Sprintf("pkg_%x", h[:4])
+		if _, exists := localToPath[ident.Name]; exists {
+			ident.Name = "namespace"
 		}
 		return true
 	})
-	var filteredDecls []pkg_52ec7f3b.Decl
+	var filteredDecls []namespace.Decl
 	for _, decl := range f.Decls {
-		if genDecl, ok := decl.(*pkg_52ec7f3b.GenDecl); ok && genDecl.Tok == pkg_55f7a5e7.IMPORT {
+		if genDecl, ok := decl.(*namespace.GenDecl); ok && genDecl.Tok == namespace.IMPORT {
 			continue
 		}
 		filteredDecls = append(filteredDecls, decl)
 	}
-	var buf pkg_277089d9.Buffer
+	var buf namespace.Buffer
 	for _, decl := range filteredDecls {
-		err := pkg_e5c6104a.Fprint(&buf, fset, decl)
+		err := namespace.Fprint(&buf, fset, decl)
 		if err != nil {
-			return nil, undefined, pkg_c63e082d.Errorf("failed to print AST node: %w", err)
+			return nil, undefined, namespace.Errorf("failed to print AST node: %w", err)
 		}
 		buf.WriteByte('\n')
 	}
 	cleanedBytes := stripEmptyLines(buf.Bytes())
-	hash := pkg_3b8f4be9.Sum256(cleanedBytes)
-	return cleanedBytes, pkg_c63e082d.Sprintf("%x", hash), nil
+	hash := namespace.Sum256(cleanedBytes)
+	return cleanedBytes, namespace.Sprintf("%x", hash), nil
 }
 

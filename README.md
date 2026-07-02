@@ -21,8 +21,9 @@ For each input file, the `pkg.Hashing` function runs the following pipeline:
 
 1. Parse the source into an AST, dropping all comments.
 2. Normalize import identifiers: every reference to an imported package is
-   rewritten to a deterministic, hash-based alias (`pkg_xxxxxxxx`) derived from
-   the import path, so renaming an alias has no effect on the hash.
+   rewritten to the fixed identifier `namespace` (so a call like `fmt.Println`
+   becomes `namespace.Println`), meaning the local alias used for an import has
+   no effect on the hash.
 3. Strip `package` and `import` declarations entirely.
 4. Remove all empty and whitespace-only lines.
 5. Compute the SHA256 hash of the resulting compacted source.
