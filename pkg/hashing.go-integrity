@@ -1,0 +1,79 @@
+cd1b2c3682ee2dbd113a4ba6f3f4353f4c3f4bb2d1984e1c4fc535c1b914c989
+---
+func Hashing(src []byte) ([]byte, string, error) {
+	var undefined string
+	fset := pkg_55f7a5e7.NewFileSet()
+	f, err := pkg_e47cd6c4.ParseFile(fset, "", src, 0)
+	if err != nil {
+		return nil, undefined, pkg_c63e082d.Errorf("failed to parse Go code: %w", err)
+	}
+	localToPath := make(map[string]string)
+	versionRegex := pkg_0af6c667.MustCompile(`^v\d+$`)
+	for _, decl := range f.Decls {
+		genDecl, ok := decl.(*pkg_52ec7f3b.GenDecl)
+		if !ok || genDecl.Tok != pkg_55f7a5e7.IMPORT {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			importSpec := spec.(*pkg_52ec7f3b.ImportSpec)
+			pathVal := pkg_e967d16d.Trim(importSpec.Path.Value, `"`)
+			var localName string
+			if importSpec.Name != nil {
+				localName = importSpec.Name.Name
+			} else {
+				base := pkg_a0af9f86.Base(pathVal)
+				if versionRegex.MatchString(base) {
+					base = pkg_a0af9f86.Base(pkg_a0af9f86.Dir(pathVal))
+				}
+				localName = base
+			}
+			localToPath[localName] = pathVal
+		}
+	}
+	pkg_52ec7f3b.Inspect(f, func(n pkg_52ec7f3b.Node) bool {
+		sel, ok := n.(*pkg_52ec7f3b.SelectorExpr)
+		if !ok {
+			return true
+		}
+		ident, ok := sel.X.(*pkg_52ec7f3b.Ident)
+		if !ok {
+			return true
+		}
+		if pathVal, exists := localToPath[ident.Name]; exists {
+			h := pkg_3b8f4be9.Sum256([]byte(pathVal))
+			ident.Name = pkg_c63e082d.Sprintf("pkg_%x", h[:4])
+		}
+		return true
+	})
+	var filteredDecls []pkg_52ec7f3b.Decl
+	for _, decl := range f.Decls {
+		if genDecl, ok := decl.(*pkg_52ec7f3b.GenDecl); ok && genDecl.Tok == pkg_55f7a5e7.IMPORT {
+			continue
+		}
+		filteredDecls = append(filteredDecls, decl)
+	}
+	var buf pkg_277089d9.Buffer
+	for _, decl := range filteredDecls {
+		err := pkg_e5c6104a.Fprint(&buf, fset, decl)
+		if err != nil {
+			return nil, undefined, pkg_c63e082d.Errorf("failed to print AST node: %w", err)
+		}
+		buf.WriteByte('\n')
+	}
+	cleanedBytes := stripEmptyLines(buf.Bytes())
+	hash := pkg_3b8f4be9.Sum256(cleanedBytes)
+	return cleanedBytes, pkg_c63e082d.Sprintf("%x", hash), nil
+}
+func stripEmptyLines(src []byte) []byte {
+	scanner := pkg_9fd75202.NewScanner(pkg_277089d9.NewReader(src))
+	var buf pkg_277089d9.Buffer
+	for scanner.Scan() {
+		line := scanner.Text()
+		if pkg_e967d16d.TrimSpace(line) != "" {
+			buf.WriteString(line)
+			buf.WriteByte('\n')
+		}
+	}
+	return buf.Bytes()
+}
+
