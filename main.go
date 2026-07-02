@@ -13,6 +13,12 @@ const Command = "go-integrity"
 
 var Version = "v1.2.3"
 
+const (
+	SuccessEmoji = "✅"
+	ErrorEmoji   = "❌"
+	UpdateEmoji  = "🔄"
+)
+
 func main() {
 	var showVersion bool
 	flag.BoolVar(&showVersion, "v", false, "print application version")
@@ -21,12 +27,15 @@ func main() {
 	flag.BoolVar(&showHelp, "h", false, "print usage information")
 
 	var includeSource bool
-	flag.BoolVar(&includeSource, "s", false, "include source of <file.go> into <file.go-integrity>")
+	flag.BoolVar(&includeSource, "s", false, "append normalized source of <file.go> to <file.go-integrity>")
+
+	var checkIntegrity bool
+	flag.BoolVar(&checkIntegrity, "c", false, "perform validation checks if <file.go> still matches <file.go-integrity>")
 
 	flag.Usage = func() {
 		fmt.Fprintf(
 			os.Stderr,
-			"Usage: %s [-h | -v | -s] <file1.go> [file2.go ...]\n",
+			"Usage: %s [-h | -v | -s | -c] <file1.go> [file2.go ...]\n",
 			Command,
 		)
 		flag.PrintDefaults()
@@ -56,6 +65,8 @@ func main() {
 
 	filePaths := make([]string, 0, len(files))
 	fileHashes := make(map[string]string)
+	results := make(map[string]string)
+	checkIntegrityErrors := 0
 
 	for _, filePath := range files {
 		content, err := os.ReadFile(filePath)
@@ -74,6 +85,29 @@ func main() {
 		outputFile := filePath + "-integrity"
 		outputData := fileHash
 
+		fileHashes[filePath] = fileHash
+		filePaths = append(
+			filePaths,
+			filePath,
+		)
+
+		if checkIntegrity {
+			currentHash, err := pkg.ReadFirstLine(outputFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+				os.Exit(1)
+			}
+
+			if currentHash == fileHash {
+				results[filePath] = SuccessEmoji
+			} else {
+				results[filePath] = ErrorEmoji
+				checkIntegrityErrors++
+			}
+
+			continue
+		}
+
 		if includeSource {
 			outputData = outputData + "\n"
 			outputData = outputData + "---\n"
@@ -86,16 +120,16 @@ func main() {
 			os.Exit(1)
 		}
 
-		fileHashes[filePath] = fileHash
-		filePaths = append(
-			filePaths,
-			filePath,
-		)
+		results[filePath] = UpdateEmoji
 	}
 
 	slices.Sort(filePaths)
 
 	for _, filePath := range filePaths {
-		fmt.Printf("%s %s\n", fileHashes[filePath], filePath)
+		fmt.Printf("%s %s %s\n", results[filePath], fileHashes[filePath], filePath)
+	}
+
+	if checkIntegrityErrors != 0 {
+		os.Exit(-1)
 	}
 }

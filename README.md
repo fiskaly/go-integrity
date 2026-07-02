@@ -46,7 +46,7 @@ go build -o go-integrity .
 ## Usage
 
 ```
-Usage: go-integrity [-h | -v | -s] <file1.go> [file2.go ...]
+Usage: go-integrity [-h | -v | -s | -c] <file1.go> [file2.go ...]
 ```
 
 | Flag | Description                                                        |
@@ -54,11 +54,31 @@ Usage: go-integrity [-h | -v | -s] <file1.go> [file2.go ...]
 | `-h` | Print usage information.                                           |
 | `-v` | Print the application version.                                     |
 | `-s` | Include the normalized source of `<file.go>` in `<file.go-integrity>`. |
+| `-c` | Verify that `<file.go>` still matches the hash stored in `<file.go-integrity>`. |
 
-For every input file, the tool writes a sidecar file named
+By default (no `-c`), for every input file the tool writes a sidecar file named
 `<file.go>-integrity` containing the computed hash (and, with `-s`, the
 normalized source used to derive it). It also prints each `<hash> <path>` pair
 to stdout, sorted by file path.
+
+### Verifying Integrity
+
+With `-c`, the tool runs in **check mode** instead of writing sidecar files. For
+each input file it recomputes the hash and compares it against the first line of
+the existing `<file.go>-integrity` sidecar. This is useful in CI to confirm that
+a file's meaningful implementation has not changed since its hash was recorded.
+
+Each result is printed with a status marker:
+
+| Marker | Meaning                                                        |
+| ------ | -------------------------------------------------------------- |
+| `🔄`   | The sidecar file was written/updated (default mode).           |
+| `✅`   | Check mode: the file matches its recorded hash.                |
+| `❌`   | Check mode: the file no longer matches its recorded hash.      |
+
+In check mode the tool never modifies the sidecar files. If any file fails
+verification, the process exits with a non-zero status code, so `-c` can be
+wired directly into CI pipelines and pre-commit hooks.
 
 ### Examples
 
@@ -82,6 +102,17 @@ Print the version:
 
 ```sh
 go-integrity -v
+```
+
+Verify that files still match their recorded hashes:
+
+```sh
+go-integrity -c main.go pkg/hashing.go
+```
+
+```
+✅ 7f3a...c989 main.go
+❌ cd1b...4b2d pkg/hashing.go
 ```
 
 ## Docker

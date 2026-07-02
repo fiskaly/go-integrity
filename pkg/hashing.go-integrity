@@ -1,4 +1,4 @@
-cd1b2c3682ee2dbd113a4ba6f3f4353f4c3f4bb2d1984e1c4fc535c1b914c989
+6464f315f52d2d683f295e64ec731c86966c9903200b8f8097e3581f69d1547e
 ---
 func Hashing(src []byte) ([]byte, string, error) {
 	var undefined string
@@ -63,17 +63,5 @@ func Hashing(src []byte) ([]byte, string, error) {
 	cleanedBytes := stripEmptyLines(buf.Bytes())
 	hash := pkg_3b8f4be9.Sum256(cleanedBytes)
 	return cleanedBytes, pkg_c63e082d.Sprintf("%x", hash), nil
-}
-func stripEmptyLines(src []byte) []byte {
-	scanner := pkg_9fd75202.NewScanner(pkg_277089d9.NewReader(src))
-	var buf pkg_277089d9.Buffer
-	for scanner.Scan() {
-		line := scanner.Text()
-		if pkg_e967d16d.TrimSpace(line) != "" {
-			buf.WriteString(line)
-			buf.WriteByte('\n')
-		}
-	}
-	return buf.Bytes()
 }
 

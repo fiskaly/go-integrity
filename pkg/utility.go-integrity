@@ -1,0 +1,31 @@
+cee9ab43d61a1f8481a98fde58825fd4bedcd223b5588244b246bf7514d4c4cf
+---
+func ReadFirstLine(filePath string) (string, error) {
+	file, err := pkg_840a8dcf.Open(filePath)
+	if err != nil {
+		return "", pkg_c63e082d.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+	scanner := pkg_9fd75202.NewScanner(file)
+	if scanner.Scan() {
+		return scanner.Text(), nil
+	}
+	err = scanner.Err()
+	if err != nil {
+		return "", pkg_c63e082d.Errorf("error reading file: %w", err)
+	}
+	return "", pkg_c63e082d.Errorf("file is empty")
+}
+func stripEmptyLines(src []byte) []byte {
+	scanner := pkg_9fd75202.NewScanner(pkg_277089d9.NewReader(src))
+	var buf pkg_277089d9.Buffer
+	for scanner.Scan() {
+		line := scanner.Text()
+		if pkg_e967d16d.TrimSpace(line) != "" {
+			buf.WriteString(line)
+			buf.WriteByte('\n')
+		}
+	}
+	return buf.Bytes()
+}
+

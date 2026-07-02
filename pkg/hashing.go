@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/sha256"
 	"fmt"
@@ -98,21 +97,4 @@ func Hashing(src []byte) ([]byte, string, error) {
 	hash := sha256.Sum256(cleanedBytes)
 
 	return cleanedBytes, fmt.Sprintf("%x", hash), nil
-}
-
-// stripEmptyLines removes all lines that are empty or contain only whitespace
-func stripEmptyLines(src []byte) []byte {
-	scanner := bufio.NewScanner(bytes.NewReader(src))
-	var buf bytes.Buffer
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		// only keep the line if it has actual content
-		if strings.TrimSpace(line) != "" {
-			buf.WriteString(line)
-			buf.WriteByte('\n')
-		}
-	}
-
-	return buf.Bytes()
 }
